@@ -1,0 +1,10 @@
+streamlit
+torch
+diffusers
+transformers
+accelerate
+scipy
+safetensors
+matplotlib
+Pillow
+huggingface_hub
