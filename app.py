@@ -41,6 +41,10 @@ st.markdown(
         font-size: 16px;
     }
 
+    .block-container {
+        padding-top: 2rem;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
@@ -54,87 +58,96 @@ st.title("🎨 AI Image Generator using Stable Diffusion")
 
 st.markdown(
     """
-Generate stunning AI images from text prompts using Stable Diffusion.
+Generate beautiful AI images from text prompts using Stable Diffusion.
 """
 )
 
 # ============================================================
-# SIDEBAR SETTINGS
+# SIDEBAR
 # ============================================================
 
 with st.sidebar:
 
     st.header("⚙️ Settings")
 
-    # Hugging Face Token
+    # ========================================================
+    # HUGGING FACE TOKEN
+    # ========================================================
+
     hf_token = st.text_input(
         "Hugging Face Token",
         type="password"
     )
 
-    # Login to Hugging Face
-    if hf_token:
+    if hf_token and "hf_logged" not in st.session_state:
 
         try:
+
             login(token=hf_token)
+
+            st.session_state["hf_logged"] = True
+
             st.success("✅ Hugging Face Login Successful")
 
         except Exception as e:
+
             st.error(f"❌ Invalid Token: {str(e)}")
 
-    # Model Selection
+    # ========================================================
+    # MODEL SELECTION
+    # ========================================================
+
     model_id = st.selectbox(
         "Select Model",
         [
-            "dreamlike-art/dreamlike-diffusion-1.0",
-            "runwayml/stable-diffusion-v1-5"
+            "runwayml/stable-diffusion-v1-5",
+            "dreamlike-art/dreamlike-diffusion-1.0"
         ]
     )
 
-    # Number of Images
+    # ========================================================
+    # IMAGE SETTINGS
+    # ========================================================
+
     num_images = st.slider(
         "Number of Images",
         min_value=1,
-        max_value=4,
+        max_value=2,
         value=2
     )
 
-    # Width
     width = st.slider(
         "Image Width",
         min_value=256,
-        max_value=768,
+        max_value=512,
         value=512,
         step=64
     )
 
-    # Height
     height = st.slider(
         "Image Height",
         min_value=256,
-        max_value=768,
+        max_value=512,
         value=512,
         step=64
     )
 
-    # Guidance Scale
     guidance_scale = st.slider(
         "Guidance Scale",
         min_value=1.0,
-        max_value=20.0,
+        max_value=15.0,
         value=7.5
     )
 
-    # Inference Steps
     num_inference_steps = st.slider(
         "Inference Steps",
         min_value=10,
-        max_value=100,
+        max_value=50,
         value=30
     )
 
 # ============================================================
-# DEVICE SETUP
+# DEVICE
 # ============================================================
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -148,18 +161,36 @@ st.sidebar.write(f"🖥️ Device: {device}")
 @st.cache_resource
 def load_model(model_name):
 
-    pipe = StableDiffusionPipeline.from_pretrained(
-        model_name,
-        torch_dtype=torch.float16 if device == "cuda" else torch.float32,
-        use_safetensors=True
-    )
+    try:
 
-    pipe = pipe.to(device)
+        if device == "cuda":
 
-    return pipe
+            pipe = StableDiffusionPipeline.from_pretrained(
+                model_name,
+                torch_dtype=torch.float16,
+                use_safetensors=True
+            )
+
+        else:
+
+            pipe = StableDiffusionPipeline.from_pretrained(
+                model_name,
+                torch_dtype=torch.float32,
+                use_safetensors=True
+            )
+
+        pipe = pipe.to(device)
+
+        return pipe
+
+    except Exception as e:
+
+        st.error(f"❌ Error Loading Model: {str(e)}")
+
+        return None
 
 # ============================================================
-# PROMPT SECTION
+# PROMPT INPUT
 # ============================================================
 
 st.subheader("📝 Enter Your Prompt")
@@ -180,7 +211,7 @@ serene and inspiring mood, 8K ultra HD, masterpiece nature photography style.
 prompt = st.text_area(
     "Describe Your Image",
     value=default_prompt,
-    height=250
+    height=220
 )
 
 # ============================================================
@@ -188,7 +219,7 @@ prompt = st.text_area(
 # ============================================================
 
 negative_prompt = st.text_area(
-    "🚫 Negative Prompt (Optional)",
+    "🚫 Negative Prompt",
     value="blurry, low quality, distorted, ugly, watermark, text",
     height=100
 )
@@ -227,12 +258,22 @@ if generate_button:
 
         try:
 
-            # Load Model
+            # ====================================================
+            # LOAD MODEL
+            # ====================================================
+
             with st.spinner("📦 Loading Stable Diffusion Model..."):
 
                 pipe = load_model(model_id)
 
-            # Generate Images
+            if pipe is None:
+
+                st.stop()
+
+            # ====================================================
+            # GENERATE IMAGES
+            # ====================================================
+
             with st.spinner("🎨 Generating AI Images..."):
 
                 result = pipe(
@@ -246,6 +287,10 @@ if generate_button:
                 )
 
                 images = result.images
+
+            # ====================================================
+            # SUCCESS MESSAGE
+            # ====================================================
 
             st.success("✅ Images Generated Successfully!")
 
@@ -265,16 +310,22 @@ if generate_button:
 
                     st.image(
                         image,
-                        caption=f"Generated Image {idx+1}",
+                        caption=f"Generated Image {idx + 1}",
                         use_container_width=True
                     )
 
                     st.download_button(
-                        label=f"⬇️ Download Image {idx+1}",
+                        label=f"⬇️ Download Image {idx + 1}",
                         data=image_to_bytes(image),
                         file_name=f"generated_image_{idx+1}.png",
                         mime="image/png"
                     )
+
+        except torch.cuda.OutOfMemoryError:
+
+            st.error(
+                "❌ GPU Out of Memory. Reduce image size or number of images."
+            )
 
         except Exception as e:
 
@@ -290,10 +341,10 @@ st.markdown(
     """
 ### 💡 Prompt Tips
 
-✅ Use cinematic, ultra realistic, HDR, 8K keywords  
+✅ Use cinematic, HDR, ultra realistic, 8K keywords  
 ✅ Add lighting and atmosphere descriptions  
 ✅ Use detailed scenery descriptions  
-✅ Higher inference steps improve quality  
-✅ GPU strongly recommended
+✅ GPU recommended for faster generation  
+✅ Reduce image size if memory issues occur
 """
 )
