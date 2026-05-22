@@ -16,7 +16,7 @@ st.title("🎨 AI Image Generator")
 # -----------------------------
 # Hugging Face Token
 # -----------------------------
-HF_TOKEN = "hf_your_token_here"
+HF_TOKEN = "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"
 
 # -----------------------------
 # Tiny Model
