@@ -1,67 +1,85 @@
 import streamlit as st
-import torch
+import requests
+from PIL import Image
+from io import BytesIO
 
-from diffusers import StableDiffusionPipeline
-
-# ---------------------------------
+# -----------------------------------
 # Streamlit Config
-# ---------------------------------
+# -----------------------------------
 st.set_page_config(
     page_title="AI Image Generator",
     page_icon="🎨"
 )
 
 st.title("🎨 AI Image Generator")
+st.write("Generate AI images using Hugging Face Inference API")
 
-# ---------------------------------
-# Hugging Face Token
-# ---------------------------------
+# -----------------------------------
+# Hugging Face API Token
+# -----------------------------------
 HF_TOKEN = "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"
 
-# ---------------------------------
-# Tiny Stable Diffusion Model
-# ---------------------------------
-MODEL_ID = "segmind/tiny-sd"
-
-# ---------------------------------
-# Load Model
-# ---------------------------------
-@st.cache_resource
-def load_model():
-
-    pipe = StableDiffusionPipeline.from_pretrained(
-        MODEL_ID,
-        use_auth_token=HF_TOKEN
-    )
-
-    pipe = pipe.to("cpu")
-
-    return pipe
-
-with st.spinner("Loading model..."):
-    pipe = load_model()
-
-st.success("Model Loaded!")
-
-# ---------------------------------
-# Prompt
-# ---------------------------------
-prompt = st.text_input(
-    "Enter Prompt",
-    "A futuristic cyberpunk city"
+# -----------------------------------
+# API Configuration
+# -----------------------------------
+API_URL = (
+    "https://api-inference.huggingface.co/models/"
+    "stabilityai/stable-diffusion-2"
 )
 
-# ---------------------------------
-# Generate
-# ---------------------------------
+headers = {
+    "Authorization": f"Bearer {HF_TOKEN}"
+}
+
+# -----------------------------------
+# Prompt Input
+# -----------------------------------
+prompt = st.text_area(
+    "Enter your prompt",
+    "A futuristic cyberpunk city at night"
+)
+
+# -----------------------------------
+# Generate Image Function
+# -----------------------------------
+def generate_image(prompt):
+
+    payload = {
+        "inputs": prompt
+    }
+
+    response = requests.post(
+        API_URL,
+        headers=headers,
+        json=payload
+    )
+
+    return response.content
+
+# -----------------------------------
+# Generate Button
+# -----------------------------------
 if st.button("Generate Image"):
 
-    with st.spinner("Generating..."):
+    if prompt.strip() == "":
+        st.warning("Please enter a prompt.")
 
-        image = pipe(prompt).images[0]
+    else:
 
-        st.image(
-            image,
-            caption="Generated Image",
-            use_container_width=True
-        )
+        with st.spinner("Generating image..."):
+
+            image_bytes = generate_image(prompt)
+
+            image = Image.open(
+                BytesIO(image_bytes)
+            )
+
+            st.image(
+                image,
+                caption="Generated Image",
+                use_container_width=True
+            )
+
+            st.success(
+                "Image Generated Successfully!"
+            )
