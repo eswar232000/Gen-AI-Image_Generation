@@ -1,16 +1,7 @@
 streamlit
-
 torch
-torchvision
-
 diffusers
 transformers
 accelerate
 safetensors
-
-scipy
 Pillow
-
-huggingface_hub
-sentencepiece
-protobuf
