@@ -1,64 +1,43 @@
 import streamlit as st
-import requests
+from huggingface_hub import InferenceClient
 from PIL import Image
-from io import BytesIO
+import io
 
-# -----------------------------------
-# Streamlit Config
-# -----------------------------------
+# ---------------------------------
+# Streamlit Page Config
+# ---------------------------------
 st.set_page_config(
     page_title="AI Image Generator",
-    page_icon="🎨"
+    page_icon="🎨",
+    layout="centered"
 )
 
 st.title("🎨 AI Image Generator")
-st.write("Generate AI images using Hugging Face Inference API")
+st.write("Generate images using Stable Diffusion")
 
-# -----------------------------------
-# Hugging Face API Token
-# -----------------------------------
+# ---------------------------------
+# Hugging Face Token
+# ---------------------------------
 HF_TOKEN = "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"
 
-# -----------------------------------
-# API Configuration
-# -----------------------------------
-API_URL = (
-    "https://api-inference.huggingface.co/models/"
-    "stabilityai/stable-diffusion-2"
+# ---------------------------------
+# Create HF Client
+# ---------------------------------
+client = InferenceClient(
+    token=HF_TOKEN
 )
 
-headers = {
-    "Authorization": f"Bearer {HF_TOKEN}"
-}
-
-# -----------------------------------
-# Prompt Input
-# -----------------------------------
+# ---------------------------------
+# User Prompt
+# ---------------------------------
 prompt = st.text_area(
     "Enter your prompt",
     "A futuristic cyberpunk city at night"
 )
 
-# -----------------------------------
-# Generate Image Function
-# -----------------------------------
-def generate_image(prompt):
-
-    payload = {
-        "inputs": prompt
-    }
-
-    response = requests.post(
-        API_URL,
-        headers=headers,
-        json=payload
-    )
-
-    return response.content
-
-# -----------------------------------
+# ---------------------------------
 # Generate Button
-# -----------------------------------
+# ---------------------------------
 if st.button("Generate Image"):
 
     if prompt.strip() == "":
@@ -66,20 +45,38 @@ if st.button("Generate Image"):
 
     else:
 
-        with st.spinner("Generating image..."):
+        try:
 
-            image_bytes = generate_image(prompt)
+            with st.spinner("Generating image..."):
 
-            image = Image.open(
-                BytesIO(image_bytes)
-            )
+                image = client.text_to_image(
+                    prompt,
+                    model="stabilityai/stable-diffusion-2"
+                )
 
-            st.image(
-                image,
-                caption="Generated Image",
-                use_container_width=True
-            )
+                # Display image
+                st.image(
+                    image,
+                    caption="Generated Image",
+                    use_container_width=True
+                )
 
-            st.success(
-                "Image Generated Successfully!"
-            )
+                # Save image to bytes
+                img_bytes = io.BytesIO()
+                image.save(img_bytes, format="PNG")
+
+                # Download button
+                st.download_button(
+                    label="Download Image",
+                    data=img_bytes.getvalue(),
+                    file_name="generated_image.png",
+                    mime="image/png"
+                )
+
+                st.success(
+                    "Image Generated Successfully!"
+                )
+
+        except Exception as e:
+
+            st.error(f"Error: {str(e)}")
