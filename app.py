@@ -2,7 +2,10 @@ import streamlit as st
 import torch
 import os
 
-from diffusers import StableDiffusionPipeline
+from diffusers import (
+    StableDiffusionPipeline,
+    DDIMScheduler
+)
 
 # ---------------------------------
 # Streamlit Configuration
@@ -22,7 +25,7 @@ st.write("Generate AI images using Stable Diffusion")
 HF_TOKEN = "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"
 
 # ---------------------------------
-# Lightweight CPU Model
+# Small CPU-Friendly Model
 # ---------------------------------
 MODEL_ID = "segmind/tiny-sd"
 
@@ -38,6 +41,11 @@ def load_model():
         use_auth_token=HF_TOKEN
     )
 
+    # Fix scheduler issue
+    pipe.scheduler = DDIMScheduler.from_config(
+        pipe.scheduler.config
+    )
+
     # Run on CPU
     pipe = pipe.to("cpu")
 
@@ -47,9 +55,9 @@ def load_model():
     return pipe
 
 # ---------------------------------
-# Load AI Model
+# Load Model
 # ---------------------------------
-with st.spinner("Loading AI model... Please wait..."):
+with st.spinner("Loading AI model..."):
 
     pipe = load_model()
 
@@ -70,9 +78,9 @@ negative_prompt = st.text_input(
 
 steps = st.slider(
     "Inference Steps",
-    10,
-    30,
-    20
+    5,
+    20,
+    10
 )
 
 guidance = st.slider(
@@ -92,38 +100,51 @@ if st.button("Generate Image"):
 
     else:
 
-        with st.spinner("Generating Image..."):
+        try:
 
-            image = pipe(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                num_inference_steps=steps,
-                guidance_scale=guidance
-            ).images[0]
+            with st.spinner("Generating image..."):
 
-            # Create output folder
-            os.makedirs("generated_images", exist_ok=True)
+                image = pipe(
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    num_inference_steps=steps,
+                    guidance_scale=guidance
+                ).images[0]
 
-            image_path = "generated_images/output.png"
-
-            # Save image
-            image.save(image_path)
-
-            # Display image
-            st.image(
-                image,
-                caption="Generated Image",
-                use_container_width=True
-            )
-
-            # Download button
-            with open(image_path, "rb") as file:
-
-                st.download_button(
-                    label="Download Image",
-                    data=file,
-                    file_name="generated_image.png",
-                    mime="image/png"
+                # Create folder
+                os.makedirs(
+                    "generated_images",
+                    exist_ok=True
                 )
 
-            st.success("Image Generated Successfully!")
+                image_path = (
+                    "generated_images/output.png"
+                )
+
+                # Save image
+                image.save(image_path)
+
+                # Display image
+                st.image(
+                    image,
+                    caption="Generated Image",
+                    use_container_width=True
+                )
+
+                # Download button
+                with open(image_path, "rb") as file:
+
+                    st.download_button(
+                        label="Download Image",
+                        data=file,
+                        file_name="generated_image.png",
+                        mime="image/png"
+                    )
+
+                st.success(
+                    "Image Generated Successfully!"
+                )
+
+        except Exception as e:
+
+            st.error(f"Error: {str(e)}")
