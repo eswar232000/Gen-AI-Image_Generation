@@ -8,7 +8,7 @@ from huggingface_hub import login
 # ---------------------------------
 # Hugging Face Login
 # ---------------------------------
-HF_TOKEN = "hf_your_token_here"
+HF_TOKEN = "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"
 
 login(token=HF_TOKEN)
 
