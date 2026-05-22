@@ -1,160 +1,107 @@
 import streamlit as st
 import torch
-
 from diffusers import StableDiffusionPipeline
-from huggingface_hub import login
-from io import BytesIO
+from PIL import Image
+import os
 
-# ============================================================
-# PAGE CONFIG
-# ============================================================
-
+# -----------------------------
+# Streamlit Page Config
+# -----------------------------
 st.set_page_config(
-    page_title="AI Image Generator",
+    page_title="Stable Diffusion Image Generator",
     page_icon="🎨",
-    layout="wide"
+    layout="centered"
 )
 
-# ============================================================
-# TITLE
-# ============================================================
+st.title("🎨 AI Image Generator using Stable Diffusion")
+st.write("Generate images from text prompts using Stable Diffusion on CPU")
 
-st.title("🎨 AI Image Generator")
-
-st.write("Generate AI images from text prompts.")
-
-# ============================================================
-# SIDEBAR
-# ============================================================
-
-with st.sidebar:
-
-    st.header("⚙️ Settings")
-
-    hf_token = st.text_input(
-        "Hugging Face Token",
-        type="password"
-    )
-
-    if hf_token and "hf_logged" not in st.session_state:
-
-        try:
-
-            login(token=hf_token)
-
-            st.session_state["hf_logged"] = True
-
-            st.success("✅ Login Successful")
-
-        except Exception as e:
-
-            st.error(str(e))
-
-    guidance_scale = st.slider(
-        "Guidance Scale",
-        1.0,
-        15.0,
-        7.5
-    )
-
-    num_inference_steps = st.slider(
-        "Inference Steps",
-        10,
-        30,
-        20
-    )
-
-# ============================================================
-# CPU DEVICE
-# ============================================================
-
-device = "cpu"
-
-# ============================================================
-# LOAD MODEL
-# ============================================================
+# -----------------------------
+# Model Loading
+# -----------------------------
+MODEL_ID = "runwayml/stable-diffusion-v1-5"
 
 @st.cache_resource
 def load_model():
-
     pipe = StableDiffusionPipeline.from_pretrained(
-        "runwayml/stable-diffusion-v1-5"
+        MODEL_ID,
+        torch_dtype=torch.float32
     )
 
-    pipe = pipe.to(device)
-
-    pipe.enable_attention_slicing()
+    # Force CPU
+    pipe = pipe.to("cpu")
 
     return pipe
 
-# ============================================================
-# PROMPT
-# ============================================================
+with st.spinner("Loading Stable Diffusion model... Please wait..."):
+    pipe = load_model()
 
+st.success("Model Loaded Successfully!")
+
+# -----------------------------
+# User Inputs
+# -----------------------------
 prompt = st.text_area(
-    "Enter Prompt",
-    height=180
+    "Enter your prompt",
+    "A futuristic cyberpunk city at night, ultra realistic"
 )
 
-# ============================================================
-# BUTTON
-# ============================================================
+negative_prompt = st.text_input(
+    "Negative Prompt (Optional)",
+    "blurry, low quality, distorted"
+)
 
-generate = st.button("🚀 Generate")
+num_inference_steps = st.slider(
+    "Inference Steps",
+    min_value=10,
+    max_value=50,
+    value=25
+)
 
-# ============================================================
-# IMAGE TO BYTES
-# ============================================================
+guidance_scale = st.slider(
+    "Guidance Scale",
+    min_value=1.0,
+    max_value=15.0,
+    value=7.5
+)
 
-def image_to_bytes(image):
+generate_btn = st.button("Generate Image")
 
-    buf = BytesIO()
-
-    image.save(buf, format="PNG")
-
-    return buf.getvalue()
-
-# ============================================================
-# GENERATE IMAGE
-# ============================================================
-
-if generate:
+# -----------------------------
+# Image Generation
+# -----------------------------
+if generate_btn:
 
     if prompt.strip() == "":
-
-        st.warning("Enter prompt")
-
+        st.warning("Please enter a valid prompt.")
     else:
 
-        try:
+        with st.spinner("Generating image..."):
 
-            with st.spinner("Loading model..."):
+            image = pipe(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale
+            ).images[0]
 
-                pipe = load_model()
+            # Create output directory
+            os.makedirs("generated_images", exist_ok=True)
 
-            with st.spinner("Generating image..."):
+            image_path = "generated_images/generated_image.png"
 
-                image = pipe(
-                    prompt,
-                    guidance_scale=guidance_scale,
-                    num_inference_steps=num_inference_steps,
-                    height=384,
-                    width=384
-                ).images[0]
+            # Save image
+            image.save(image_path)
 
-            st.image(
-                image,
-                caption="Generated Image",
-                use_container_width=True
-            )
+            st.image(image, caption="Generated Image", use_container_width=True)
 
-            st.download_button(
-                "⬇️ Download",
-                data=image_to_bytes(image),
-                file_name="generated.png",
-                mime="image/png"
-            )
+            # Download Button
+            with open(image_path, "rb") as file:
+                st.download_button(
+                    label="Download Image",
+                    data=file,
+                    file_name="generated_image.png",
+                    mime="image/png"
+                )
 
-        except Exception as e:
-
-            st.error(f"Error: {str(e)}")
+            st.success("Image Generated Successfully!")
