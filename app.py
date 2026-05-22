@@ -1,19 +1,16 @@
 import streamlit as st
 from huggingface_hub import InferenceClient
-from PIL import Image
 import io
 
 # ---------------------------------
-# Streamlit Page Config
+# Streamlit Config
 # ---------------------------------
 st.set_page_config(
     page_title="AI Image Generator",
-    page_icon="🎨",
-    layout="centered"
+    page_icon="🎨"
 )
 
 st.title("🎨 AI Image Generator")
-st.write("Generate images using Stable Diffusion")
 
 # ---------------------------------
 # Hugging Face Token
@@ -21,17 +18,22 @@ st.write("Generate images using Stable Diffusion")
 HF_TOKEN = "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"
 
 # ---------------------------------
-# Create HF Client
+# HF Client
 # ---------------------------------
 client = InferenceClient(
     token=HF_TOKEN
 )
 
 # ---------------------------------
-# User Prompt
+# Public Working Model
+# ---------------------------------
+MODEL_NAME = "black-forest-labs/FLUX.1-schnell"
+
+# ---------------------------------
+# Prompt Input
 # ---------------------------------
 prompt = st.text_area(
-    "Enter your prompt",
+    "Enter Prompt",
     "A futuristic cyberpunk city at night"
 )
 
@@ -51,7 +53,7 @@ if st.button("Generate Image"):
 
                 image = client.text_to_image(
                     prompt,
-                    model="stabilityai/stable-diffusion-2"
+                    model=MODEL_NAME
                 )
 
                 # Display image
@@ -61,11 +63,10 @@ if st.button("Generate Image"):
                     use_container_width=True
                 )
 
-                # Save image to bytes
+                # Download
                 img_bytes = io.BytesIO()
                 image.save(img_bytes, format="PNG")
 
-                # Download button
                 st.download_button(
                     label="Download Image",
                     data=img_bytes.getvalue(),
