@@ -15,7 +15,7 @@ st.title("🎨 AI Image Generator")
 # ---------------------------------
 # Hugging Face Token
 # ---------------------------------
-HF_TOKEN = "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"
+HF_TOKEN = "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"
 
 # ---------------------------------
 # HF Client
