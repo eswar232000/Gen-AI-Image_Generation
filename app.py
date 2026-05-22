@@ -1,11 +1,11 @@
 import streamlit as st
 import torch
-from diffusers import StableDiffusionPipeline
-from PIL import Image
 
-# -----------------------------
+from diffusers import StableDiffusionPipeline
+
+# ---------------------------------
 # Streamlit Config
-# -----------------------------
+# ---------------------------------
 st.set_page_config(
     page_title="AI Image Generator",
     page_icon="🎨"
@@ -13,19 +13,19 @@ st.set_page_config(
 
 st.title("🎨 AI Image Generator")
 
-# -----------------------------
+# ---------------------------------
 # Hugging Face Token
-# -----------------------------
+# ---------------------------------
 HF_TOKEN = "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"
 
-# -----------------------------
-# Tiny Model
-# -----------------------------
+# ---------------------------------
+# Tiny Stable Diffusion Model
+# ---------------------------------
 MODEL_ID = "segmind/tiny-sd"
 
-# -----------------------------
+# ---------------------------------
 # Load Model
-# -----------------------------
+# ---------------------------------
 @st.cache_resource
 def load_model():
 
@@ -43,20 +43,20 @@ with st.spinner("Loading model..."):
 
 st.success("Model Loaded!")
 
-# -----------------------------
-# Prompt Input
-# -----------------------------
+# ---------------------------------
+# Prompt
+# ---------------------------------
 prompt = st.text_input(
     "Enter Prompt",
-    "A futuristic city at sunset"
+    "A futuristic cyberpunk city"
 )
 
-# -----------------------------
-# Generate Image
-# -----------------------------
-if st.button("Generate"):
+# ---------------------------------
+# Generate
+# ---------------------------------
+if st.button("Generate Image"):
 
-    with st.spinner("Generating image..."):
+    with st.spinner("Generating..."):
 
         image = pipe(prompt).images[0]
 
