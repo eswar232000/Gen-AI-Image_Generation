@@ -3,17 +3,9 @@ import torch
 import os
 
 from diffusers import StableDiffusionPipeline
-from huggingface_hub import login
 
 # ---------------------------------
-# Hugging Face Login
-# ---------------------------------
-HF_TOKEN = "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"
-
-login(token=HF_TOKEN)
-
-# ---------------------------------
-# Streamlit Page Configuration
+# Streamlit Configuration
 # ---------------------------------
 st.set_page_config(
     page_title="AI Image Generator",
@@ -22,10 +14,15 @@ st.set_page_config(
 )
 
 st.title("🎨 AI Image Generator")
-st.write("Generate AI images from text prompts using Stable Diffusion")
+st.write("Generate AI images using Stable Diffusion")
 
 # ---------------------------------
-# Lightweight Stable Diffusion Model
+# Hugging Face Token
+# ---------------------------------
+HF_TOKEN = "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"
+
+# ---------------------------------
+# Lightweight CPU Model
 # ---------------------------------
 MODEL_ID = "OFA-Sys/small-stable-diffusion-v0"
 
@@ -37,21 +34,23 @@ def load_model():
 
     pipe = StableDiffusionPipeline.from_pretrained(
         MODEL_ID,
-        torch_dtype=torch.float32
+        torch_dtype=torch.float32,
+        use_auth_token=HF_TOKEN
     )
 
     # Run on CPU
     pipe = pipe.to("cpu")
 
-    # CPU memory optimization
+    # CPU optimization
     pipe.enable_attention_slicing()
 
     return pipe
 
 # ---------------------------------
-# Load the Model
+# Load AI Model
 # ---------------------------------
 with st.spinner("Loading AI model... Please wait..."):
+
     pipe = load_model()
 
 st.success("Model Loaded Successfully!")
@@ -60,27 +59,27 @@ st.success("Model Loaded Successfully!")
 # User Inputs
 # ---------------------------------
 prompt = st.text_area(
-    "Enter your prompt",
-    "A futuristic cyberpunk city at night, ultra realistic"
+    "Enter Prompt",
+    "A futuristic cyberpunk city at night"
 )
 
 negative_prompt = st.text_input(
     "Negative Prompt",
-    "blurry, low quality, distorted"
+    "blurry, low quality"
 )
 
-num_inference_steps = st.slider(
+steps = st.slider(
     "Inference Steps",
-    min_value=10,
-    max_value=30,
-    value=20
+    10,
+    30,
+    20
 )
 
-guidance_scale = st.slider(
+guidance = st.slider(
     "Guidance Scale",
-    min_value=1.0,
-    max_value=10.0,
-    value=7.5
+    1.0,
+    10.0,
+    7.5
 )
 
 # ---------------------------------
@@ -89,23 +88,23 @@ guidance_scale = st.slider(
 if st.button("Generate Image"):
 
     if prompt.strip() == "":
-        st.warning("Please enter a valid prompt.")
+        st.warning("Please enter a prompt.")
 
     else:
 
-        with st.spinner("Generating image... Please wait..."):
+        with st.spinner("Generating Image..."):
 
             image = pipe(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale
+                num_inference_steps=steps,
+                guidance_scale=guidance
             ).images[0]
 
             # Create output folder
             os.makedirs("generated_images", exist_ok=True)
 
-            image_path = "generated_images/generated_image.png"
+            image_path = "generated_images/output.png"
 
             # Save image
             image.save(image_path)
