@@ -1,150 +1,67 @@
 import streamlit as st
 import torch
-import os
+from diffusers import StableDiffusionPipeline
+from PIL import Image
 
-from diffusers import (
-    StableDiffusionPipeline,
-    DDIMScheduler
-)
-
-# ---------------------------------
-# Streamlit Configuration
-# ---------------------------------
+# -----------------------------
+# Streamlit Config
+# -----------------------------
 st.set_page_config(
     page_title="AI Image Generator",
-    page_icon="🎨",
-    layout="centered"
+    page_icon="🎨"
 )
 
 st.title("🎨 AI Image Generator")
-st.write("Generate AI images using Stable Diffusion")
 
-# ---------------------------------
+# -----------------------------
 # Hugging Face Token
-# ---------------------------------
-HF_TOKEN = "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"
+# -----------------------------
+HF_TOKEN = "hf_your_token_here"
 
-# ---------------------------------
-# Small CPU-Friendly Model
-# ---------------------------------
+# -----------------------------
+# Tiny Model
+# -----------------------------
 MODEL_ID = "segmind/tiny-sd"
 
-# ---------------------------------
+# -----------------------------
 # Load Model
-# ---------------------------------
+# -----------------------------
 @st.cache_resource
 def load_model():
 
     pipe = StableDiffusionPipeline.from_pretrained(
         MODEL_ID,
-        torch_dtype=torch.float32,
         use_auth_token=HF_TOKEN
     )
 
-    # Fix scheduler issue
-    pipe.scheduler = DDIMScheduler.from_config(
-        pipe.scheduler.config
-    )
-
-    # Run on CPU
     pipe = pipe.to("cpu")
-
-    # CPU optimization
-    pipe.enable_attention_slicing()
 
     return pipe
 
-# ---------------------------------
-# Load Model
-# ---------------------------------
-with st.spinner("Loading AI model..."):
-
+with st.spinner("Loading model..."):
     pipe = load_model()
 
-st.success("Model Loaded Successfully!")
+st.success("Model Loaded!")
 
-# ---------------------------------
-# User Inputs
-# ---------------------------------
-prompt = st.text_area(
+# -----------------------------
+# Prompt Input
+# -----------------------------
+prompt = st.text_input(
     "Enter Prompt",
-    "A futuristic cyberpunk city at night"
+    "A futuristic city at sunset"
 )
 
-negative_prompt = st.text_input(
-    "Negative Prompt",
-    "blurry, low quality"
-)
-
-steps = st.slider(
-    "Inference Steps",
-    5,
-    20,
-    10
-)
-
-guidance = st.slider(
-    "Guidance Scale",
-    1.0,
-    10.0,
-    7.5
-)
-
-# ---------------------------------
+# -----------------------------
 # Generate Image
-# ---------------------------------
-if st.button("Generate Image"):
+# -----------------------------
+if st.button("Generate"):
 
-    if prompt.strip() == "":
-        st.warning("Please enter a prompt.")
+    with st.spinner("Generating image..."):
 
-    else:
+        image = pipe(prompt).images[0]
 
-        try:
-
-            with st.spinner("Generating image..."):
-
-                image = pipe(
-                    prompt=prompt,
-                    negative_prompt=negative_prompt,
-                    num_inference_steps=steps,
-                    guidance_scale=guidance
-                ).images[0]
-
-                # Create folder
-                os.makedirs(
-                    "generated_images",
-                    exist_ok=True
-                )
-
-                image_path = (
-                    "generated_images/output.png"
-                )
-
-                # Save image
-                image.save(image_path)
-
-                # Display image
-                st.image(
-                    image,
-                    caption="Generated Image",
-                    use_container_width=True
-                )
-
-                # Download button
-                with open(image_path, "rb") as file:
-
-                    st.download_button(
-                        label="Download Image",
-                        data=file,
-                        file_name="generated_image.png",
-                        mime="image/png"
-                    )
-
-                st.success(
-                    "Image Generated Successfully!"
-                )
-
-        except Exception as e:
-
-            st.error(f"Error: {str(e)}")
+        st.image(
+            image,
+            caption="Generated Image",
+            use_container_width=True
+        )
