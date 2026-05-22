@@ -24,7 +24,7 @@ HF_TOKEN = "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"
 # ---------------------------------
 # Lightweight CPU Model
 # ---------------------------------
-MODEL_ID = "OFA-Sys/small-stable-diffusion-v0"
+MODEL_ID = "segmind/tiny-sd"
 
 # ---------------------------------
 # Load Model
